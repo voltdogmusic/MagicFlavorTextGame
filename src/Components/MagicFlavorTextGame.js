@@ -12,7 +12,7 @@ class MagicFlavorTextGame extends Component {
             correctAnswerCardNameStr: '',
             questionAnswered: false,
             correctnessStr: '',
-            page: 5,
+            page: 250,
             questionNumber: 0,
             score: 0,
             possibleAnswerStr: '',
@@ -32,14 +32,28 @@ class MagicFlavorTextGame extends Component {
         //Grab our cards from the API, filter for english flavor text
         const respVar = await fetch(`https://api.scryfall.com/cards?page=${this.state.page}`);
         const jsonVar = await respVar.json();
+
+        //console.log(jsonVar);
+
         const filterLangAndTextArr =
             jsonVar.data
                 .filter(i => i.lang === 'en')
                 .filter(i => i.flavor_text !== null)
                 .filter(i => i.flavor_text !== undefined);
-        const cardArrObjLocal = filterLangAndTextArr;
 
-        console.log(filterLangAndTextArr);
+        // if the cards have no flavor text, turn the page and try again
+        // if(filterLangAndTextArr.length===0){
+        //     this.setState((state) => (
+        //             {
+        //                 page: state.page + 1
+        //             }),
+        //         () => {
+        //             //this.hitApi();
+        //         }
+        //     );
+        // }
+
+        const cardArrObjLocal = filterLangAndTextArr;
 
         //Grab the card names from the card array and shuffle them in a possible answer array,
         //this array will be displayed to the screen as the possible answers
@@ -49,6 +63,8 @@ class MagicFlavorTextGame extends Component {
             possibleAnswerArrayStrLocal[i] = cardArrObjLocal[i].name
         }
         this.shuffleArray(possibleAnswerArrayStrLocal);
+
+        //console.log('possibleAnswerArrayStrLocal', possibleAnswerArrayStrLocal);
 
         this.setState(
             {
