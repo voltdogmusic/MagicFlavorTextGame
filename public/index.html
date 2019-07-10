@@ -1,38 +1,216 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
+<head>
+    <title>MTG Flavor Text Quiz</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json"/>
+    <link href="https://fonts.googleapis.com/css?family=Macondo+Swash+Caps&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Kaushan+Script&display=swap" rel="stylesheet">
+    <script src="three.min.js"></script>
 
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
+</head>
+<body onload ="loadFunction()">
+<noscript>You need to enable JavaScript to run this app.</noscript>
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+<script>
+    let scene, camera, renderer, cloudParticles = [], flash, rain, rainGeo, rainCount = 15000;
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
-  </body>
+
+    function init() {
+
+        scene = new THREE.Scene();
+
+        //60 degrees field of view, viewport w/h, 1000 unit viewing frustum
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.z = 1;
+
+        //set rotation angle of camera to look up in the sky
+        camera.position.z = 1;
+        camera.rotation.x = 1.16;
+        camera.rotation.y = -0.12;
+        camera.rotation.z = 0.27;
+
+        //add two types of light
+        //ambient light to light the scene in all directions
+        ambient = new THREE.AmbientLight(0x555555);
+        scene.add(ambient);
+
+        //directional light for moonlight in the sky
+        directionalLight = new THREE.DirectionalLight(0xffeedd);
+        directionalLight.position.set(0, 0, 1);
+        scene.add(directionalLight);
+
+        //set up webgl renderer using current viewport size and add to the page as canvas element
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        //add lightning flash, add light with blue color
+        flash = new THREE.PointLight(0x062d89, 30, 500, 1.7);
+        //position behind cloud
+        flash.position.set(200, 300, 100);
+        scene.add(flash);
+
+
+        //add fog to scene
+        scene.fog = new THREE.FogExp2(0x11111f, 0.002);
+        renderer.setClearColor(scene.fog.color);
+
+        //create one object with many vertexes, and every vertex represents one raindrop
+        //use a loop to create each vertex, using a vector3 object
+        //randomize the position
+        rainGeo = new THREE.Geometry();
+        for (let i = 0; i < rainCount; i++) {
+            rainDrop = new THREE.Vector3(
+                Math.random() * 400 - 200,
+                Math.random() * 500 - 250,
+                Math.random() * 400 - 200
+            );
+
+            //animation the rain by adding velocity to each raindrop
+            rainDrop.velocity = {};
+            rainDrop.velocity = 0;
+
+            //add vertices to the geometry
+            rainGeo.vertices.push(rainDrop);
+        }
+
+        //create rain material using point material class
+        //set size, set color to white
+        rainMaterial = new THREE.PointsMaterial({
+            color: 0xaaaaaa,
+            size: 0.1,
+            transparent: true
+        });
+
+        //create rain object and add it to the scene
+        rain = new THREE.Points(rainGeo, rainMaterial);
+        scene.add(rain);
+
+        //need two things to create 3d object
+        //the geometry that defines the shape and material which defines the surface/texture
+        //we will use a smoke image to define the texture
+        //the call back function will trigger once the texture is loaded
+        let loader = new THREE.TextureLoader();
+        loader.load("smoke.png", function (texture) {
+
+            //set geometry of cloud as 500 units of plane square
+            cloudGeo = new THREE.PlaneBufferGeometry(500, 500);
+            //create material and map to smoke texture
+            cloudMaterial = new THREE.MeshLambertMaterial({
+                map: texture,
+                transparent: true
+            });
+
+            //add loop to randomly add each cloud to the scene
+
+            for (let p = 0; p < 25; p++) {
+                //first create cloud object from the geometry and material above
+                let cloud = new THREE.Mesh(cloudGeo, cloudMaterial);
+                //then randomly set the position
+                cloud.position.set(
+                    Math.random() * 800 - 400,
+                    500,
+                    Math.random() * 500 - 450
+                );
+                //set cloud rotation to face the camera
+                cloud.rotation.x = 1.16;
+                cloud.rotation.y = -0.12;
+                cloud.rotation.z = Math.random() * 360;
+                //add 60 percent opacity
+                cloud.material.opacity = 0.6;
+                cloudParticles.push(cloud);
+                scene.add(cloud);
+            }
+
+            animate();
+        });
+
+
+    }
+
+    function animate() {
+
+        //use array to rotate clouds one by one
+        cloudParticles.forEach(p => {
+            p.rotation.z -= 0.002;
+        });
+
+        //randomize the flash position and intensity
+        if (Math.random() > 0.93 || flash.power > 100) {
+            if (flash.power < 100)
+                flash.position.set(
+                    Math.random() * 400,
+                    300 + Math.random() * 200,
+                    100
+                );
+            flash.power = 50 + Math.random() * 500;
+        }
+
+        //move each drop and increase velocity to simulate gravity
+        rainGeo.vertices.forEach(p => {
+            p.velocity -= 0.1 + Math.random() * 0.1;
+            p.y += p.velocity;
+            if (p.y < -200) {
+                p.y = 200;
+                p.velocity = 0;
+            }
+        });
+        //reset the position of the drop if they're outside the screen
+        rainGeo.verticesNeedUpdate = true;
+        //add rotation to the rain
+        rain.rotation.y += 0.002;
+
+
+        //render scene
+        renderer.render(scene, camera);
+
+        //start animation loop
+        requestAnimationFrame(animate);
+    }
+
+    init();
+
+
+</script>
+<h1 class='instructionsTitle'>Select the Magic The Gathering Card that matches the flavor text below</h1>
+
+
+<div id="loader" ></div>
+
+<div  id="root"></div>
+<div id="portal-root"></div>
+
+<div class="smlinks">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <a href="https://www.facebook.com/voltdogmusic/" class="fa fa-facebook"></a>
+    <a href="https://twitter.com/VOLTDOGmusic" class="fa fa-twitter"></a>
+    <a href="https://www.linkedin.com/in/thomas-lee-609453181/" class="fa fa-linkedin"></a>
+    <a href="https://www.youtube.com/c/voltdogmusic/videos" class="fa fa-youtube"></a>
+    <a href="https://www.instagram.com/voltdogmusic/" class="fa fa-instagram"></a>
+    <a href="https://soundcloud.com/voltdogmusic" class="fa fa-soundcloud"></a>
+    <div>
+        <a class='email' href="mailto:tlee7222@gmail.com">Contact</a>
+    </div>
+
+</div>
+
+
+</body>
+
+<!--Loading Script **************************************************-->
+<script>
+    var myVar;
+
+    function loadFunction() {
+        myVar = setTimeout(showPage, 1500);
+    }
+
+    function showPage() {
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("root").style.display = "block";
+    }
+</script>
 </html>
