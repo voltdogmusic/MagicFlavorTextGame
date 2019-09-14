@@ -5,7 +5,12 @@
     box-sizing: border-box;
 }
 
-*{margin:0; padding:0;}
+*{
+    margin:0;
+    padding:0;
+
+}
+
 
 
 /*index.html*/
@@ -206,7 +211,6 @@ canvas {
     margin: 5px 2px;
     color: white;
     transform: scale(1.4) translateX(-1rem);
-
 }
 
 .fa:hover {
@@ -219,7 +223,6 @@ canvas {
     background-color: transparent;
     text-decoration: none;
     font-family: 'Macondo Swash Caps', cursive;
-
 }
 
 
