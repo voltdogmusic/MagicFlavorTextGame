@@ -30,8 +30,9 @@ class MagicFlavorTextGame extends Component {
     async hitApi() {
 
         //Grab our cards from the API, filter for english flavor text
-        const respVar = await fetch(`https://api.scryfall.com/cards?page=${this.state.page}`);
+        const respVar = await fetch(`https://api.scryfall.com/cards/search?q=c%3Awhite+mv%3D9`);
         const jsonVar = await respVar.json();
+        //console.log(jsonVar)
 
         //console.log(jsonVar);
 
